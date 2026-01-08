@@ -1,13 +1,16 @@
 package routes
 
 import (
-	noteRoutes "golang-boilerplate-example/module/note/routes"
+	"golang-boilerplate-example/module/note"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-func SetupRoutes(app *fiber.App) {
-	api := app.Group("/api/v1")
-
-	noteRoutes.SetupNoteRoutes(api)
+func RegisterNoteRoutes(app *fiber.App, handler *note.Handler) {
+	// Note routes
+	app.Post("/notes", handler.CreateNote)
+	app.Get("/notes", handler.GetAllNotes)
+	app.Get("/notes/:id", handler.GetNote)
+	app.Put("/notes/:id", handler.UpdateNote)
+	app.Delete("/notes/:id", handler.DeleteNote)
 }

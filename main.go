@@ -2,7 +2,9 @@ package main
 
 import (
 	"golang-boilerplate-example/database"
+	"golang-boilerplate-example/module/note"
 	"golang-boilerplate-example/routes"
+	"log"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -12,11 +14,20 @@ func main() {
 	app := fiber.New()
 
 	// Connect to the database
-	database.ConnectDatabase()
+	db, err := database.ConnectDatabase()
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// Setup Routes
-	routes.SetupRoutes(app)
+	// Auto migrate
+	db.AutoMigrate(&note.Note{})
 
+	// Note resources
+	noteRepo := note.NewRepository(db)
+	noteService := note.NewService(noteRepo)
+	noteHandler := note.NewHandler(noteService)
+
+	routes.RegisterNoteRoutes(app, noteHandler)
 
 	// Send string back for GET calls to the endpoint '/'
 	app.Get("/", func(c *fiber.Ctx) error {
@@ -24,5 +35,8 @@ func main() {
 	})
 
 	// Listen on port 3000
-	app.Listen(":3000")
+	if err := app.Listen(":3000"); err != nil {
+		log.Fatal(err)
+	}
+
 }
