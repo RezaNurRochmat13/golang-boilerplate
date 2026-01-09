@@ -21,7 +21,10 @@ func (h *Handler) GetAllNotes(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(notes)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Notes fetched successfully",
+		"data":    notes,
+	})
 }
 
 func (h *Handler) GetNote(c *fiber.Ctx) error {
@@ -35,7 +38,10 @@ func (h *Handler) GetNote(c *fiber.Ctx) error {
 		})
 	}
 
-	return c.Status(fiber.StatusOK).JSON(note)
+	return c.Status(fiber.StatusOK).JSON(fiber.Map{
+		"message": "Note fetched successfully",
+		"data":    note,
+	})
 }
 
 func (h *Handler) CreateNote(c *fiber.Ctx) error {
