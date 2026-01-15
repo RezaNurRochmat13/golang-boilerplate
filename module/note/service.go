@@ -1,10 +1,10 @@
 package note
 
 type Service struct {
-	repo *Repository
+	repo RepositoryContract
 }
 
-func NewService(repo *Repository) *Service {
+func NewService(repo RepositoryContract) *Service {
 	return &Service{
 		repo: repo,
 	}
