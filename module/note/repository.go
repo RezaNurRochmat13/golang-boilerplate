@@ -29,14 +29,30 @@ func (r *Repository) CreateNote(note *Note) error {
 }
 
 func (r *Repository) UpdateNote(id string, note *Note) error {
-	err := r.DB.First(&note, "id = ?", id).Error
-	if err != nil {
+	var existing Note
+
+	if err := r.DB.First(&existing, "id = ?", id).Error; err != nil {
 		return err
 	}
 
-	return r.DB.Save(note).Error
+	// copy fields explicitly
+	existing.Title = note.Title
+	existing.Content = note.Content
+	existing.Text = note.Text
+
+	return r.DB.Save(&existing).Error
 }
 
 func (r *Repository) DeleteNote(id string) error {
-	return r.DB.Delete(&Note{}, "id = ?", id).Error
+	result := r.DB.Delete(&Note{}, "id = ?", id)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
 }
