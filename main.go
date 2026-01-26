@@ -34,8 +34,12 @@ func main() {
 		return c.SendString("API is up and running")
 	})
 
-	// Listen on port 3000
-	if err := app.Listen(":3000"); err != nil {
+	app.Get("/ping", func(c *fiber.Ctx) error {
+		return c.SendString("pong")
+	})
+
+	// Listen on port 8080
+	if err := app.Listen(":8080"); err != nil {
 		log.Fatal(err)
 	}
 
