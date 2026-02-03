@@ -176,6 +176,25 @@ func TestUpdateNote_Integration(t *testing.T) {
 	}
 }
 
+func TestUpdateNoteInvalidPayload_Integration(t *testing.T) {
+	app := SetupTestApp()
+
+	id := createNote(t, app, "Old Title")
+
+	req := httptest.NewRequest(
+		http.MethodPut,
+		"/api/notes/"+id,
+		bytes.NewBuffer([]byte(`{"title":""}`)),
+	)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, _ := app.Test(req)
+
+	if resp.StatusCode != fiber.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", resp.StatusCode)
+	}
+}
+
 func TestDeleteNote_Integration(t *testing.T) {
 	app := SetupTestApp()
 
@@ -200,5 +219,21 @@ func TestDeleteNote_Integration(t *testing.T) {
 	resp2, _ := app.Test(req)
 	if resp2.StatusCode == fiber.StatusOK {
 		t.Fatal("expected error when deleting non-existent note")
+	}
+}
+
+func TestDeleteNoteInvalidID_Integration(t *testing.T) {
+	app := SetupTestApp()
+
+	req := httptest.NewRequest(
+		http.MethodDelete,
+		"/api/notes/invalid-id",
+		nil,
+	)
+
+	resp, _ := app.Test(req)
+
+	if resp.StatusCode != fiber.StatusNotFound {
+		t.Fatalf("expected 404, got %d", resp.StatusCode)
 	}
 }
