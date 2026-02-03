@@ -88,7 +88,7 @@ func TestService_GetNote(t *testing.T) {
 	}
 }
 
-func TestService_CreateNote(t *testing.T) {
+func TestService_CreateNote_Success(t *testing.T) {
 	repo := &mockRepository{
 		createNoteFn: func(note *note.Note) error {
 			return nil
@@ -97,13 +97,30 @@ func TestService_CreateNote(t *testing.T) {
 
 	service := note.NewService(repo)
 
-	err := service.CreateNote(&note.Note{})
+	err := service.CreateNote(&note.Note{
+		Title: "test",
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestService_UpdateNote(t *testing.T) {
+func TestService_CreateNote_InvalidPayload(t *testing.T) {
+	repo := &mockRepository{}
+
+	service := note.NewService(repo)
+
+	err := service.CreateNote(&note.Note{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if !errors.Is(err, note.ErrInvalidPayload) {
+		t.Fatalf("expected ErrInvalidPayload, got %v", err)
+	}
+}
+
+func TestService_UpdateNote_Success(t *testing.T) {
 	repo := &mockRepository{
 		updateNoteFn: func(id string, note *note.Note) error {
 			return nil
@@ -112,13 +129,51 @@ func TestService_UpdateNote(t *testing.T) {
 
 	service := note.NewService(repo)
 
-	err := service.UpdateNote("1", &note.Note{})
+	err := service.UpdateNote("1", &note.Note{
+		Title: "updated",
+	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-func TestService_DeleteNote(t *testing.T) {
+func TestService_UpdateNote_NotFound(t *testing.T) {
+	repo := &mockRepository{
+		updateNoteFn: func(id string, input *note.Note) error {
+			return note.ErrNoteNotFound
+		},
+	}
+
+	service := note.NewService(repo)
+
+	err := service.UpdateNote("1", &note.Note{
+		Title: "updated",
+	})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if !errors.Is(err, note.ErrNoteNotFound) {
+		t.Fatalf("expected ErrNoteNotFound, got %v", err)
+	}
+}
+
+func TestService_UpdateNote_InvalidPayload(t *testing.T) {
+	repo := &mockRepository{}
+
+	service := note.NewService(repo)
+
+	err := service.UpdateNote("1", &note.Note{})
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if !errors.Is(err, note.ErrInvalidPayload) {
+		t.Fatalf("expected ErrInvalidPayload, got %v", err)
+	}
+}
+
+func TestService_DeleteNote_Success(t *testing.T) {
 	repo := &mockRepository{
 		deleteNoteFn: func(id string) error {
 			return nil
@@ -133,12 +188,10 @@ func TestService_DeleteNote(t *testing.T) {
 	}
 }
 
-func TestService_DeleteNote_Error(t *testing.T) {
-	expectedErr := errors.New("delete failed")
-
+func TestService_DeleteNote_NotFound(t *testing.T) {
 	repo := &mockRepository{
 		deleteNoteFn: func(id string) error {
-			return expectedErr
+			return note.ErrNoteNotFound
 		},
 	}
 
@@ -149,7 +202,29 @@ func TestService_DeleteNote_Error(t *testing.T) {
 		t.Fatal("expected error, got nil")
 	}
 
-	if err != expectedErr {
-		t.Fatalf("expected %v, got %v", expectedErr, err)
+	if !errors.Is(err, note.ErrNoteNotFound) {
+		t.Fatalf("expected ErrNoteNotFound, got %v", err)
+	}
+}
+
+func TestService_DeleteNote_OtherError(t *testing.T) {
+	repoErr := errors.New("db connection lost")
+
+	repo := &mockRepository{
+		deleteNoteFn: func(id string) error {
+			return repoErr
+		},
+	}
+
+	service := note.NewService(repo)
+
+	err := service.DeleteNote("1")
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	// harus tetap bisa di-unwarp
+	if !errors.Is(err, repoErr) {
+		t.Fatalf("expected wrapped error, got %v", err)
 	}
 }

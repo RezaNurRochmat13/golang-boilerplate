@@ -1,6 +1,13 @@
 package note
 
-import "gorm.io/gorm"
+import (
+	"errors"
+	"fmt"
+
+	"gorm.io/gorm"
+)
+
+var ErrNoteNotFound = errors.New("Note not found")
 
 type Repository struct {
 	DB *gorm.DB
@@ -14,25 +21,42 @@ func NewRepository(db *gorm.DB) *Repository {
 
 func (r *Repository) GetAllNotes() ([]Note, error) {
 	var notes []Note
-	err := r.DB.Find(&notes).Error
-	return notes, err
+	if err := r.DB.Find(&notes).Error; err != nil {
+		return nil, fmt.Errorf("repo: get all notes: %w", err)
+	}
+
+	return notes, nil
 }
 
 func (r *Repository) GetNote(id string) (Note, error) {
 	var note Note
-	err := r.DB.First(&note, "id = ?", id).Error
-	return note, err
+
+	if err := r.DB.First(&note, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return Note{}, ErrNoteNotFound
+		}
+		return Note{}, fmt.Errorf("repo: get note %s: %w", id, err)
+	}
+
+	return note, nil
 }
 
 func (r *Repository) CreateNote(note *Note) error {
-	return r.DB.Create(note).Error
+	if err := r.DB.Create(note).Error; err != nil {
+		return fmt.Errorf("repo: create note: %w", err)
+	}
+
+	return nil
 }
 
 func (r *Repository) UpdateNote(id string, note *Note) error {
 	var existing Note
 
 	if err := r.DB.First(&existing, "id = ?", id).Error; err != nil {
-		return err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ErrNoteNotFound
+		}
+		return fmt.Errorf("repo: find note %s for update: %w", id, err)
 	}
 
 	// copy fields explicitly
@@ -40,18 +64,22 @@ func (r *Repository) UpdateNote(id string, note *Note) error {
 	existing.Content = note.Content
 	existing.Text = note.Text
 
-	return r.DB.Save(&existing).Error
+	if err := r.DB.Save(&existing).Error; err != nil {
+		return fmt.Errorf("repo: update note %s: %w", id, err)
+	}
+
+	return nil
 }
 
 func (r *Repository) DeleteNote(id string) error {
 	result := r.DB.Delete(&Note{}, "id = ?", id)
 
 	if result.Error != nil {
-		return result.Error
+		return fmt.Errorf("repo: delete note %s: %w", id, result.Error)
 	}
 
 	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
+		return ErrNoteNotFound
 	}
 
 	return nil
