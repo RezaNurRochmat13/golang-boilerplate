@@ -43,8 +43,8 @@ func main() {
 		return c.SendString("pong")
 	})
 
-	// Listen on port 8080
-	if err := app.Listen(":8080"); err != nil {
+	// Listen on port 8081
+	if err := app.Listen(":8081"); err != nil {
 		log.Fatal(err)
 	}
 
