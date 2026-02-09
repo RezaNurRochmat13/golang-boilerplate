@@ -14,4 +14,5 @@ func RegisterNoteRoutes(app *fiber.App, handler *note.Handler) {
 	group.Get("/notes/:id", handler.GetNote)
 	group.Put("/notes/:id", handler.UpdateNote)
 	group.Delete("/notes/:id", handler.DeleteNote)
+	group.Post("/send-email", handler.SendEmail)
 }

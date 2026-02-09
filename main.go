@@ -7,6 +7,7 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/hibiken/asynq"
 )
 
 func main() {
@@ -22,10 +23,14 @@ func main() {
 	// Auto migrate
 	db.AutoMigrate(&note.Note{})
 
+	// Initiate Asynq Client
+	queue := asynq.NewClient(database.RedisOpt())
+	defer queue.Close()
+
 	// Note resources
 	noteRepo := note.NewRepository(db)
 	noteService := note.NewService(noteRepo)
-	noteHandler := note.NewHandler(noteService)
+	noteHandler := note.NewHandler(noteService, queue)
 
 	routes.RegisterNoteRoutes(app, noteHandler)
 

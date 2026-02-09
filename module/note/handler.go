@@ -2,17 +2,21 @@ package note
 
 import (
 	"errors"
+	"golang-boilerplate-example/module/email"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/hibiken/asynq"
 )
 
 type Handler struct {
 	Service *Service
+	Queue   *asynq.Client
 }
 
-func NewHandler(service *Service) *Handler {
+func NewHandler(service *Service, queue *asynq.Client) *Handler {
 	return &Handler{
 		Service: service,
+		Queue:   queue,
 	}
 }
 
@@ -84,6 +88,39 @@ func (h *Handler) DeleteNote(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Note deleted successfully",
 	})
+}
+
+func (h *Handler) SendEmail(c *fiber.Ctx) error {
+	type Payload struct {
+		To      string `json:"to"`
+		Subject string `json:"subject"`
+		Body    string `json:"body"`
+	}
+
+	var body Payload
+	if err := c.BodyParser(&body); err != nil {
+		return handleError(c, err)
+	}
+
+	task, err := email.NewSendEmailTask(email.Payload{
+		To:      body.To,
+		Subject: body.Subject,
+		Body:    body.Body,
+	})
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	_, err = h.Queue.Enqueue(
+		task,
+		asynq.MaxRetry(5),
+		asynq.Timeout(30),
+	)
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"message": "email queued"})
 }
 
 func handleError(c *fiber.Ctx, err error) error {
