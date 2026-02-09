@@ -2,7 +2,7 @@ package main
 
 import (
 	"golang-boilerplate-example/database"
-	"golang-boilerplate-example/module/email"
+	"golang-boilerplate-example/queue/email"
 	"log"
 
 	"github.com/hibiken/asynq"
@@ -19,7 +19,7 @@ func main() {
 	mux := asynq.NewServeMux()
 	mux.HandleFunc(email.TypeSendEmail, email.HandleSendEmail)
 
-	log.Println("Email worker running...")
+	log.Println("Worker is running...")
 	if err := server.Run(mux); err != nil {
 		log.Fatal(err)
 	}

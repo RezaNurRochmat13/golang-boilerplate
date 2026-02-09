@@ -2,7 +2,7 @@ package note
 
 import (
 	"errors"
-	"golang-boilerplate-example/module/email"
+	"golang-boilerplate-example/queue/email"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hibiken/asynq"

@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/hibiken/asynq"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -22,10 +23,14 @@ func SetupTestApp() *fiber.App {
 		log.Fatal(err)
 	}
 
+	// setup queue
+	queue := asynq.NewClient(asynq.RedisClientOpt{Addr: ":6379"})
+	defer queue.Close()
+
 	// wire dependencies
 	repo := note.NewRepository(db)
 	service := note.NewService(repo)
-	handler := note.NewHandler(service)
+	handler := note.NewHandler(service, queue)
 
 	app := fiber.New()
 	routes.RegisterNoteRoutes(app, handler)
