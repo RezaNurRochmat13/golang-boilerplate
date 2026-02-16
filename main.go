@@ -2,17 +2,47 @@ package main
 
 import (
 	"golang-boilerplate-example/database"
+	"golang-boilerplate-example/internal/logger"
+	"golang-boilerplate-example/internal/middleware"
 	"golang-boilerplate-example/module/note"
 	"golang-boilerplate-example/routes"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hibiken/asynq"
+	"go.uber.org/zap"
 )
 
 func main() {
+	// Start logger
+	logger.Init()
+	defer logger.Sync()
+
 	// Start a new Fiber App
-	app := fiber.New()
+	app := fiber.New(fiber.Config{
+		ErrorHandler: func(c *fiber.Ctx, err error) error {
+
+			code := fiber.StatusInternalServerError
+
+			if e, ok := err.(*fiber.Error); ok {
+				code = e.Code
+			}
+
+			logger.Log.Error("request failed",
+				zap.String("method", c.Method()),
+				zap.String("path", c.Path()),
+				zap.Int("status", code),
+				zap.String("error", err.Error()),
+			)
+
+			return c.Status(code).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		},
+	})
+
+	// Middleware
+	app.Use(middleware.LoggerMiddleware())
 
 	// Connect to the database
 	db, err := database.ConnectDatabase()
