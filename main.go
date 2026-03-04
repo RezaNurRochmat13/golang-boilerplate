@@ -10,6 +10,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/hibiken/asynq"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -57,9 +58,16 @@ func main() {
 	queue := asynq.NewClient(database.RedisOpt())
 	defer queue.Close()
 
+	// Initiate redis connection
+	redisConnection := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+
 	// Note resources
 	noteRepo := note.NewRepository(db)
-	noteService := note.NewService(noteRepo)
+	noteService := note.NewService(noteRepo, redisConnection)
 	noteHandler := note.NewHandler(noteService, queue)
 
 	routes.RegisterNoteRoutes(app, noteHandler)
