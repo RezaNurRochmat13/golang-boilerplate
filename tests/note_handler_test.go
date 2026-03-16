@@ -13,12 +13,11 @@ import (
 func createNote(t *testing.T, app *fiber.App, title string) string {
 	t.Helper()
 
-	req := httptest.NewRequest(
+	req := authRequest(
 		http.MethodPost,
 		"/api/notes",
-		bytes.NewBuffer([]byte(`{"title":"`+title+`"}`)),
+		[]byte(`{"title":"`+title+`"}`),
 	)
-	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(req)
 	if err != nil {
@@ -30,7 +29,7 @@ func createNote(t *testing.T, app *fiber.App, title string) string {
 	}
 
 	// fetch notes to get ID
-	getReq := httptest.NewRequest(http.MethodGet, "/api/notes", nil)
+	getReq := authRequest(http.MethodGet, "/api/notes", nil)
 	getResp, _ := app.Test(getReq)
 
 	var result struct {
@@ -53,7 +52,8 @@ func TestGetAllNotes_Integration(t *testing.T) {
 
 	createNote(t, app, "Note 1")
 
-	req := httptest.NewRequest(http.MethodGet, "/api/notes", nil)
+	req := authRequest(http.MethodGet, "/api/notes", nil)
+
 	resp, err := app.Test(req)
 	if err != nil {
 		t.Fatalf("request failed: %v", err)
@@ -79,7 +79,7 @@ func TestGetNoteByID_Integration(t *testing.T) {
 
 	id := createNote(t, app, "Detail Note")
 
-	req := httptest.NewRequest(
+	req := authRequest(
 		http.MethodGet,
 		"/api/notes/"+id,
 		nil,
@@ -98,7 +98,7 @@ func TestGetNoteByID_Integration(t *testing.T) {
 func TestGetNote_InvalidID(t *testing.T) {
 	app := SetupTestApp()
 
-	req := httptest.NewRequest(
+	req := authRequest(
 		http.MethodGet,
 		"/api/notes/invalid-id",
 		nil,
@@ -140,12 +140,11 @@ func TestCreateNote_Integration(t *testing.T) {
 func TestCreateNote_InvalidBody(t *testing.T) {
 	app := SetupTestApp()
 
-	req := httptest.NewRequest(
+	req := authRequest(
 		http.MethodPost,
 		"/api/notes",
-		bytes.NewBuffer([]byte(`invalid-json`)),
+		[]byte(`invalid-json`),
 	)
-	req.Header.Set("Content-Type", "application/json")
 
 	resp, _ := app.Test(req)
 
@@ -159,12 +158,11 @@ func TestUpdateNote_Integration(t *testing.T) {
 
 	id := createNote(t, app, "Old Title")
 
-	req := httptest.NewRequest(
+	req := authRequest(
 		http.MethodPut,
 		"/api/notes/"+id,
-		bytes.NewBuffer([]byte(`{"title":"Updated Title"}`)),
+		[]byte(`{"title":"Updated Title"}`),
 	)
-	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := app.Test(req)
 	if err != nil {
@@ -181,12 +179,11 @@ func TestUpdateNoteInvalidPayload_Integration(t *testing.T) {
 
 	id := createNote(t, app, "Old Title")
 
-	req := httptest.NewRequest(
+	req := authRequest(
 		http.MethodPut,
 		"/api/notes/"+id,
-		bytes.NewBuffer([]byte(`{"title":""}`)),
+		[]byte(`{"title":""}`),
 	)
-	req.Header.Set("Content-Type", "application/json")
 
 	resp, _ := app.Test(req)
 
@@ -200,7 +197,7 @@ func TestDeleteNote_Integration(t *testing.T) {
 
 	id := createNote(t, app, "Delete Me")
 
-	req := httptest.NewRequest(
+	req := authRequest(
 		http.MethodDelete,
 		"/api/notes/"+id,
 		nil,
@@ -215,7 +212,6 @@ func TestDeleteNote_Integration(t *testing.T) {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
 	}
 
-	// edge case: delete again → should fail
 	resp2, _ := app.Test(req)
 	if resp2.StatusCode == fiber.StatusOK {
 		t.Fatal("expected error when deleting non-existent note")
@@ -225,7 +221,7 @@ func TestDeleteNote_Integration(t *testing.T) {
 func TestDeleteNoteInvalidID_Integration(t *testing.T) {
 	app := SetupTestApp()
 
-	req := httptest.NewRequest(
+	req := authRequest(
 		http.MethodDelete,
 		"/api/notes/invalid-id",
 		nil,
