@@ -5,6 +5,7 @@ import (
 	"golang-boilerplate-example/internal/logger"
 	"golang-boilerplate-example/internal/middleware"
 	"golang-boilerplate-example/module/note"
+	"golang-boilerplate-example/module/user"
 	"golang-boilerplate-example/routes"
 	"log"
 
@@ -53,6 +54,7 @@ func main() {
 
 	// Auto migrate
 	db.AutoMigrate(&note.Note{})
+	db.AutoMigrate(&user.User{})
 
 	// Initiate Asynq Client
 	queue := asynq.NewClient(database.RedisOpt())
@@ -70,6 +72,12 @@ func main() {
 	noteService := note.NewService(noteRepo, redisConnection)
 	noteHandler := note.NewHandler(noteService, queue)
 
+	// Auth resources
+	userRepo := user.NewRepository(db)
+	userService := user.NewService(userRepo)
+	userHandler := user.NewHandler(userService)
+
+	routes.RegisterAuthRoutes(app, userHandler)
 	routes.RegisterNoteRoutes(app, noteHandler)
 
 	// Send string back for GET calls to the endpoint '/'
