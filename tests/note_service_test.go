@@ -38,6 +38,8 @@ func (m *mockRepository) DeleteNote(id string) error {
 }
 
 func TestService_GetAllNotes(t *testing.T) {
+	redisClient := setupRedis(t)
+
 	id := uuid.New()
 
 	expected := []note.Note{
@@ -50,7 +52,7 @@ func TestService_GetAllNotes(t *testing.T) {
 		},
 	}
 
-	service := note.NewService(repo)
+	service := note.NewService(repo, redisClient)
 
 	result, err := service.GetAllNotes()
 	if err != nil {
@@ -63,6 +65,8 @@ func TestService_GetAllNotes(t *testing.T) {
 }
 
 func TestService_GetNote(t *testing.T) {
+	redisClient := setupRedis(t)
+
 	id := uuid.New()
 
 	expected := note.Note{ID: id, Title: "Test"}
@@ -76,7 +80,7 @@ func TestService_GetNote(t *testing.T) {
 		},
 	}
 
-	service := note.NewService(repo)
+	service := note.NewService(repo, redisClient)
 
 	note, err := service.GetNote("1")
 	if err != nil {
@@ -89,13 +93,15 @@ func TestService_GetNote(t *testing.T) {
 }
 
 func TestService_CreateNote_Success(t *testing.T) {
+	redisClient := setupRedis(t)
+
 	repo := &mockRepository{
 		createNoteFn: func(note *note.Note) error {
 			return nil
 		},
 	}
 
-	service := note.NewService(repo)
+	service := note.NewService(repo, redisClient)
 
 	err := service.CreateNote(&note.Note{
 		Title: "test",
@@ -106,9 +112,11 @@ func TestService_CreateNote_Success(t *testing.T) {
 }
 
 func TestService_CreateNote_InvalidPayload(t *testing.T) {
+	redisClient := setupRedis(t)
+
 	repo := &mockRepository{}
 
-	service := note.NewService(repo)
+	service := note.NewService(repo, redisClient)
 
 	err := service.CreateNote(&note.Note{})
 	if err == nil {
@@ -121,13 +129,15 @@ func TestService_CreateNote_InvalidPayload(t *testing.T) {
 }
 
 func TestService_UpdateNote_Success(t *testing.T) {
+	redisClient := setupRedis(t)
+
 	repo := &mockRepository{
 		updateNoteFn: func(id string, note *note.Note) error {
 			return nil
 		},
 	}
 
-	service := note.NewService(repo)
+	service := note.NewService(repo, redisClient)
 
 	err := service.UpdateNote("1", &note.Note{
 		Title: "updated",
@@ -138,13 +148,15 @@ func TestService_UpdateNote_Success(t *testing.T) {
 }
 
 func TestService_UpdateNote_NotFound(t *testing.T) {
+	redisClient := setupRedis(t)
+
 	repo := &mockRepository{
 		updateNoteFn: func(id string, input *note.Note) error {
 			return note.ErrNoteNotFound
 		},
 	}
 
-	service := note.NewService(repo)
+	service := note.NewService(repo, redisClient)
 
 	err := service.UpdateNote("1", &note.Note{
 		Title: "updated",
@@ -159,9 +171,11 @@ func TestService_UpdateNote_NotFound(t *testing.T) {
 }
 
 func TestService_UpdateNote_InvalidPayload(t *testing.T) {
+	redisClient := setupRedis(t)
+
 	repo := &mockRepository{}
 
-	service := note.NewService(repo)
+	service := note.NewService(repo, redisClient)
 
 	err := service.UpdateNote("1", &note.Note{})
 	if err == nil {
@@ -174,13 +188,15 @@ func TestService_UpdateNote_InvalidPayload(t *testing.T) {
 }
 
 func TestService_DeleteNote_Success(t *testing.T) {
+	redisClient := setupRedis(t)
+
 	repo := &mockRepository{
 		deleteNoteFn: func(id string) error {
 			return nil
 		},
 	}
 
-	service := note.NewService(repo)
+	service := note.NewService(repo, redisClient)
 
 	err := service.DeleteNote("1")
 	if err != nil {
@@ -189,13 +205,15 @@ func TestService_DeleteNote_Success(t *testing.T) {
 }
 
 func TestService_DeleteNote_NotFound(t *testing.T) {
+	redisClient := setupRedis(t)
+
 	repo := &mockRepository{
 		deleteNoteFn: func(id string) error {
 			return note.ErrNoteNotFound
 		},
 	}
 
-	service := note.NewService(repo)
+	service := note.NewService(repo, redisClient)
 
 	err := service.DeleteNote("1")
 	if err == nil {
@@ -209,6 +227,7 @@ func TestService_DeleteNote_NotFound(t *testing.T) {
 
 func TestService_DeleteNote_OtherError(t *testing.T) {
 	repoErr := errors.New("db connection lost")
+	redisClient := setupRedis(t)
 
 	repo := &mockRepository{
 		deleteNoteFn: func(id string) error {
@@ -216,7 +235,7 @@ func TestService_DeleteNote_OtherError(t *testing.T) {
 		},
 	}
 
-	service := note.NewService(repo)
+	service := note.NewService(repo, redisClient)
 
 	err := service.DeleteNote("1")
 	if err == nil {
