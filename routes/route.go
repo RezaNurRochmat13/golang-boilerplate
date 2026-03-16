@@ -6,12 +6,13 @@ import (
 	"golang-boilerplate-example/module/user"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/redis/go-redis/v9"
 )
 
-func RegisterNoteRoutes(app *fiber.App, handler *note.Handler) {
+func RegisterNoteRoutes(app *fiber.App, handler *note.Handler, redis *redis.Client) {
 	// Note routes
 	group := app.Group("/api")
-	group.Use(auth.JWTMiddleware())
+	group.Use(auth.JWTMiddleware(redis))
 	group.Post("/notes", handler.CreateNote)
 	group.Get("/notes", handler.GetAllNotes)
 	group.Get("/notes/:id", handler.GetNote)

@@ -74,11 +74,11 @@ func main() {
 
 	// Auth resources
 	userRepo := user.NewRepository(db)
-	userService := user.NewService(userRepo)
-	userHandler := user.NewHandler(userService)
+	userService := user.NewService(userRepo, redisConnection)
+	userHandler := user.NewHandler(userService, redisConnection)
 
 	routes.RegisterAuthRoutes(app, userHandler)
-	routes.RegisterNoteRoutes(app, noteHandler)
+	routes.RegisterNoteRoutes(app, noteHandler, redisConnection)
 
 	// Send string back for GET calls to the endpoint '/'
 	app.Get("/", func(c *fiber.Ctx) error {

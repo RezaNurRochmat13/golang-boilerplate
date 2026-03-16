@@ -1,17 +1,17 @@
 package user
 
 import (
-	"golang-boilerplate-example/internal/auth"
-
 	"github.com/gofiber/fiber/v2"
+	"github.com/redis/go-redis/v9"
 )
 
 type Handler struct {
 	service *Service
+	redis   *redis.Client
 }
 
-func NewHandler(service *Service) *Handler {
-	return &Handler{service}
+func NewHandler(service *Service, redis *redis.Client) *Handler {
+	return &Handler{service, redis}
 }
 
 func (h *Handler) Register(c *fiber.Ctx) error {
@@ -46,17 +46,10 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 		})
 	}
 
-	user, err := h.service.Login(c.Context(), req)
+	token, err := h.service.Login(c.Context(), req)
 	if err != nil {
 		return c.Status(401).JSON(fiber.Map{
 			"error": "invalid credentials",
-		})
-	}
-
-	token, err := auth.GenerateToken(uint(user.ID))
-	if err != nil {
-		return c.Status(500).JSON(fiber.Map{
-			"error": "token generation failed",
 		})
 	}
 
