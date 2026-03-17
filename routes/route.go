@@ -26,3 +26,11 @@ func RegisterAuthRoutes(app *fiber.App, handler *user.Handler) {
 	group.Post("/register", handler.Register)
 	group.Post("/login", handler.Login)
 }
+
+func RegisterHealthRoutes(app *fiber.App) {
+	group := app.Group("/api")
+
+	group.Get("/health", func(c *fiber.Ctx) error {
+		return c.SendString("API is up and running")
+	})
+}

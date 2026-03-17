@@ -1,24 +1,30 @@
 package main
 
 import (
-	"golang-boilerplate-example/database"
+	"golang-boilerplate-example/internal/bootstrap"
+	"golang-boilerplate-example/internal/container"
 	"golang-boilerplate-example/internal/logger"
 	"golang-boilerplate-example/internal/middleware"
-	"golang-boilerplate-example/module/note"
-	"golang-boilerplate-example/module/user"
 	"golang-boilerplate-example/routes"
 	"log"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/hibiken/asynq"
-	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
 func main() {
-	// Start logger
+	// Logger initialization
 	logger.Init()
 	defer logger.Sync()
+
+	// Bootstrapping app
+	db := bootstrap.InitDatabase()
+	redisClient := bootstrap.InitRedis()
+	queue := bootstrap.InitQueue()
+	defer queue.Close()
+
+	// Build container dependencies
+	initContainer := container.Build(db, redisClient, queue)
 
 	// Start a new Fiber App
 	app := fiber.New(fiber.Config{
@@ -46,52 +52,15 @@ func main() {
 	// Middleware
 	app.Use(middleware.LoggerMiddleware())
 
-	// Connect to the database
-	db, err := database.ConnectDatabase()
-	if err != nil {
-		log.Fatal(err)
-	}
+	// Routes registration
+	routes.RegisterAuthRoutes(app, initContainer.UserHandler)
+	routes.RegisterNoteRoutes(app, initContainer.NoteHandler, redisClient)
 
-	// Auto migrate
-	db.AutoMigrate(&note.Note{})
-	db.AutoMigrate(&user.User{})
-
-	// Initiate Asynq Client
-	queue := asynq.NewClient(database.RedisOpt())
-	defer queue.Close()
-
-	// Initiate redis connection
-	redisConnection := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "",
-		DB:       0,
-	})
-
-	// Note resources
-	noteRepo := note.NewRepository(db)
-	noteService := note.NewService(noteRepo, redisConnection)
-	noteHandler := note.NewHandler(noteService, queue)
-
-	// Auth resources
-	userRepo := user.NewRepository(db)
-	userService := user.NewService(userRepo, redisConnection)
-	userHandler := user.NewHandler(userService, redisConnection)
-
-	routes.RegisterAuthRoutes(app, userHandler)
-	routes.RegisterNoteRoutes(app, noteHandler, redisConnection)
-
-	// Send string back for GET calls to the endpoint '/'
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendString("API is up and running")
-	})
-
-	app.Get("/ping", func(c *fiber.Ctx) error {
-		return c.SendString("pong")
-	})
+	// Health check
+	routes.RegisterHealthRoutes(app)
 
 	// Listen on port 8081
 	if err := app.Listen(":8081"); err != nil {
 		log.Fatal(err)
 	}
-
 }
